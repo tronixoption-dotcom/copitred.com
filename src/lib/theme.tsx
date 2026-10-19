@@ -9,18 +9,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // "light" on both, then sync from localStorage after mount to avoid hydration
   // mismatches on the <html> element.
   const [theme, setThemeState] = useState<Theme>("light");
+  const [hasLoadedPreference, setHasLoadedPreference] = useState(false);
 
   useEffect(() => {
-    const stored = (typeof window !== "undefined" && localStorage.getItem("theme")) as Theme | null;
-    if (stored === "light" || stored === "dark") setThemeState(stored);
+    try {
+      const stored = localStorage.getItem("theme");
+      if (stored === "light" || stored === "dark") setThemeState(stored);
+    } catch {
+      // Use the light default when browser storage is unavailable.
+    } finally {
+      setHasLoadedPreference(true);
+    }
   }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
+    if (!hasLoadedPreference) return;
     try { localStorage.setItem("theme", theme); } catch {}
-  }, [theme]);
+  }, [theme, hasLoadedPreference]);
 
   const setTheme = (t: Theme) => setThemeState(t);
   const toggle = () => setThemeState((t) => (t === "dark" ? "light" : "dark"));
